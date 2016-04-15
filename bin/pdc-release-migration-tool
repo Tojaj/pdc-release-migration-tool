@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+# Copyright (c) 2016 Red Hat
+# Licensed under The MIT License (MIT)
+# http://opensource.org/licenses/MIT
+"""
+Command line tool for migration/backup of releases from PDC.
+"""
+
+import os
+import sys
+import logging
+import optparse
+
+from beanbag import BeanBagException
+from pdc_client import PDCClient
+
+if sys.path[0] not in ('/usr/bin', '/bin', '/usr/local/bin'):
+    # Git checkout
+    sys.path[0] = os.path.dirname(sys.path[0])
+
+from pdc_release_migration_tool import PdcReleaseMigrationTool
+
+# TODO
+# * Add support for integrated_with (?)
+
+
+def main():
+
+    # Setup parser
+    parser = optparse.OptionParser(
+        "\n  %prog [options] --dump RELEASE_ID [RELEASE_ID ...]"
+        "\n  %prog [options] --load FILE [RELEASE_ID ...]"
+    )
+
+    # Add options
+    parser.add_option(
+        "--pdc-server",
+        default="prod",
+        help="PDC instance url or shortcut [%default]"
+    )
+    parser.add_option(
+        "--dump",
+        action="store_true",
+        help="Dump specified releases from server"
+    )
+    parser.add_option(
+        "--load",
+        action="store_true",
+        help="Load dumped releases into PDC"
+    )
+    parser.add_option(
+        "-o", "--output",
+        default="releases-migration.json",
+        help="Output file [%default]"
+    )
+    parser.add_option(
+        "--test",
+        action="store_true",
+        help="Show what would be done. Only useful with --load."
+    )
+    parser.add_option(
+        "--verbose",
+        action="store_true",
+        help="Verbose (debug) output"
+    )
+
+    # Add option group with devel options
+    group = optparse.OptionGroup(parser, "Devel options")
+    group.add_option(
+        "--develop",
+        action="store_true",
+        default=False,
+        help="Enable develop mode of PDCClient (e.g. for sites with disabled auth)"
+    )
+    parser.add_option_group(group)
+
+    # Parse commandline options
+    options, args = parser.parse_args()
+
+    # Opts sanity check
+    if options.dump and options.load:
+        parser.error("You cannot use --dump and --load simultaneously")
+    if not options.dump and not options.load:
+        parser.error("Specify --dump or --load")
+    if options.dump and len(args) == 0:
+        parser.error("Specify at least one RELEASE_ID")
+    if options.load and len(args) < 1:
+        parser.error("Specify input file")
+
+    if options.load and not os.path.isfile(args[0]):
+        parser.error("File '%s' doesn't exist" % args[0])
+
+    # Setup logger
+    level = logging.INFO
+    if options.verbose:
+        level = logging.DEBUG
+
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+
+    logger = logging.getLogger("pdc-release-migration-tool")
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    # Setup PDC proxy
+    logger.debug("Using server: %s", options.pdc_server)
+    client = PDCClient(options.pdc_server, develop=options.develop)
+
+    # Setup migration tool
+    rmt = PdcReleaseMigrationTool(client, logger=logger, test=options.test)
+
+    # Just do it!
+    if options.dump:
+        ret = rmt.dump(options.output, args)
+    if options.load:
+        release_ids = args[1:]
+        if len(args) == 1:
+            release_ids = None
+        ret = rmt.load(args[0], release_ids)
+
+    if options.test:
+        logger.warning("Note: --test option was used")
+
+    return ret
+
+
+if __name__ == "__main__":
+    try:
+        ret = main()
+    except BeanBagException as err:
+        print >> sys.stderr, "Bean bag error:\n%s" % err.response.text
+        sys.exit(1)
+
+    if not ret:
+        sys.exit(1)
+
+    sys.exit(0)
