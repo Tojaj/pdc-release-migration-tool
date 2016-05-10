@@ -10,6 +10,7 @@ import operator
 import unittest
 
 import mock
+from mock import call
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -78,6 +79,37 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
         expected = set(['Bar'])
         self.assertEqual(data, expected)
 
+    def test_filter_existing_items_with_query_param(self):
+        """Test _filter_existing_items method with optional query_param"""
+
+        # Server mock
+        client_mock = mock.MagicMock()
+        items = []
+        client_mock['test-resource'].return_value = items
+        query_param = ("name", ['Foo', 'Bar'])
+
+        # Input parameters
+        resource = "test-resource"
+        selector = operator.itemgetter("name")
+        needed_items = ['Foo', 'Bar']
+
+        # Test
+        rmt = PdcReleaseMigrationTool(client_mock)
+        rmt._filter_existing_items(resource,
+                                   selector,
+                                   needed_items,
+                                   query_param=query_param)
+
+        # Expect that the query_param was used
+        # * This means that multiple queries were done
+        # * Specified params were used
+        calls = client_mock[resource].mock_calls
+        expected = [
+            call(name='Foo', page_size=-1),
+            call(name='Bar', page_size=-1),
+        ]
+        self.assertEqual(calls, expected)
+
     def test_prepare_post_data(self):
         """Test _prepare_post_data method"""
 
@@ -127,6 +159,23 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Assert that input array is not modified!
         self.assertEqual(items, items_copy)
+
+    def test_bulk_insert(self):
+        """Test that bulk insert does chunking properly"""
+
+        # Server mock
+        client_mock = mock.MagicMock()
+
+        # Input parameters
+        resource = "test-resource"
+        data = range(0, PdcReleaseMigrationTool.BATCH_SIZE * 2 + 1)
+
+        # Test
+        rmt = PdcReleaseMigrationTool(client_mock)
+        rmt._bulk_insert(resource, data)
+
+        # Assert that data was posted in three chunks
+        self.assertEqual(len(client_mock[resource].mock_calls), 3)
 
 
 if __name__ == '__main__':
