@@ -338,7 +338,11 @@ class PdcReleaseMigrationTool(object):
         return True
 
     def load(self, f, release_ids):
-        data = json.load(f)
+        try:
+            data = json.load(f)
+        except ValueError as err:
+            self._error("Bad input file format: %s" % err)
+            return False
 
         # Check input data format
         if (not isinstance(data, list)
