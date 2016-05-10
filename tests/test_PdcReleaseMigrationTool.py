@@ -198,7 +198,10 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
         # Assert success
         self.assertTrue(ret)
 
-        # Assert all resources were inquired
+        # Assert appropriate resources were inquired
+        # Resources like release-variants and content-delivery-repos
+        # are queried only for specific releases and because here are
+        # no releases available. No queries are expected.
         expected = [
             call('releases'),
             call('product-versions'),
@@ -206,6 +209,58 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
             call('base-products'),
         ]
         client_mock.__getitem__.assert_has_calls(expected, any_order=True)
+
+    def test_load_with_empty_file(self):
+        """Test load empty file"""
+
+        # Input parameters
+        f = StringIO("")
+
+        # Test
+        rmt = PdcReleaseMigrationTool(None)
+        ret = rmt.load(f, None)
+
+        # Assert negative return value
+        self.assertFalse(ret)
+
+    def test_load_with_empty_json(self):
+        """Test load file with empty json"""
+
+        # Input parameters
+        f = StringIO("[]")
+
+        # Test
+        rmt = PdcReleaseMigrationTool(None)
+        ret = rmt.load(f, None)
+
+        # Assert negative return value
+        self.assertFalse(ret)
+
+    def test_load_with_invalid_format(self):
+        """Test load file with almost valid format"""
+
+        # Input parameters
+        f = StringIO("[{},{}]")
+
+        # Test
+        rmt = PdcReleaseMigrationTool(None)
+        ret = rmt.load(f, None)
+
+        # Assert negative return value
+        self.assertFalse(ret)
+
+    def test_load_valid_file_without_content(self):
+        """Test load file with valid format but without content"""
+
+        # Input parameters
+        f = StringIO('[{"name": %s, "version: 1"},{}]' % PdcReleaseMigrationTool.NAME)
+
+        # Test
+        rmt = PdcReleaseMigrationTool(None)
+        ret = rmt.load(f, None)
+
+        # Assert negative return value
+        self.assertFalse(ret)
 
 
 if __name__ == '__main__':
