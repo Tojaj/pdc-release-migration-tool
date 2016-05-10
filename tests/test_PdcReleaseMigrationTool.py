@@ -8,6 +8,10 @@ import sys
 import copy
 import operator
 import unittest
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 import mock
 from mock import call
@@ -176,6 +180,32 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Assert that data was posted in three chunks
         self.assertEqual(len(client_mock[resource].mock_calls), 3)
+
+    def test_dump(self):
+        """Test dump method"""
+
+        # Server mock
+        client_mock = mock.MagicMock()
+
+        # Input parameters
+        f = StringIO()
+        release_ids = ["foo-release"]
+
+        # Test
+        rmt = PdcReleaseMigrationTool(client_mock)
+        ret = rmt.dump(f, release_ids)
+
+        # Assert success
+        self.assertTrue(ret)
+
+        # Assert all resources were inquired
+        expected = [
+            call('releases'),
+            call('product-versions'),
+            call('products'),
+            call('base-products'),
+        ]
+        client_mock.__getitem__.assert_has_calls(expected, any_order=True)
 
 
 if __name__ == '__main__':
