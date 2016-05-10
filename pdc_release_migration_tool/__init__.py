@@ -313,7 +313,7 @@ class PdcReleaseMigrationTool(object):
                                    needed_base_product_ids,
                                    ["base_product_id"])
 
-    def dump(self, fn, release_ids):
+    def dump(self, f, release_ids):
         self._get_releases(release_ids)
         self._get_release_variants()
         self._get_content_delivery_repos()
@@ -333,13 +333,11 @@ class PdcReleaseMigrationTool(object):
             "base-products": self._base_products,
         }]
 
-        f = open(fn, "wb")
         json.dump(ret, f, indent=2, separators=(',', ': '), sort_keys=True)
 
         return True
 
-    def load(self, fn, release_ids):
-        f = open(fn)
+    def load(self, f, release_ids):
         data = json.load(f)
 
         # Check input data format

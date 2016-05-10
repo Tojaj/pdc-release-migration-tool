@@ -6,6 +6,7 @@
 Command line tool for migration/backup of releases from PDC.
 """
 
+from __future__ import print_function
 import os
 import sys
 import logging
@@ -22,6 +23,24 @@ from pdc_release_migration_tool import PdcReleaseMigrationTool
 
 # TODO
 # * Add support for integrated_with (?)
+
+
+def dump(rmt, fn, release_ids):
+    try:
+        f = open(fn, "wb")
+    except IOError as err:
+        print("Cannot open '%s': %s" % (fn, err), file=sys.stderr)
+        return False
+    return rmt.dump(f, release_ids)
+
+
+def load(rmt, fn, release_ids=None):
+    try:
+        f = open(fn, "rb")
+    except IOError as err:
+        print("Cannot open '%s': %s" % (fn, err), file=sys.stderr)
+        return False
+    return rmt.load(f, release_ids)
 
 
 def main():
@@ -111,12 +130,9 @@ def main():
 
     # Just do it!
     if options.dump:
-        ret = rmt.dump(options.output, args)
+        ret = dump(rmt, options.output, args)
     if options.load:
-        release_ids = args[1:]
-        if len(args) == 1:
-            release_ids = None
-        ret = rmt.load(args[0], release_ids)
+        ret = load(rmt, args[0], args[1:] or None)
 
     if options.test:
         logger.warning("Note: --test option was used")
