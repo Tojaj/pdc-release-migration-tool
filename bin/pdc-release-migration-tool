@@ -144,7 +144,7 @@ if __name__ == "__main__":
     try:
         ret = main()
     except BeanBagException as err:
-        print >> sys.stderr, "Bean bag error:\n%s" % err.response.text
+        print("Bean bag error:\n%s" % err.response.text, file=sys.stderr)
         sys.exit(1)
 
     if not ret:
