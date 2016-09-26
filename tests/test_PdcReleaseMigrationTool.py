@@ -181,7 +181,7 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
         # Assert that data was posted in three chunks
         self.assertEqual(len(client_mock[resource].mock_calls), 3)
 
-    def test_dump(self):
+    def test_dump_01(self):
         """Test dump method"""
 
         # Server mock
@@ -193,7 +193,37 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Test
         rmt = PdcReleaseMigrationTool(client_mock)
-        ret = rmt.dump(f, release_ids)
+        ret = rmt.dump(f, None)
+
+        # Assert success
+        self.assertTrue(ret)
+
+        # Assert appropriate resources were inquired
+        # Resources like release-variants and content-delivery-repos
+        # are queried only for specific releases and because here are
+        # no releases available. No queries are expected.
+        expected = [
+            call('releases'),
+            call('product-versions'),
+            call('products'),
+            call('base-products'),
+        ]
+        client_mock.__getitem__.assert_has_calls(expected, any_order=True)
+
+    def test_dump_02(self):
+        """Test dump method"""
+
+        # Server mock
+        client_mock = mock.MagicMock()
+        client_mock["releases"]._return_value = []
+
+        # Input parameters
+        f = StringIO()
+        release_ids = ["foo-release"]
+
+        # Test
+        rmt = PdcReleaseMigrationTool(client_mock)
+        ret = rmt.dump(f, None)
 
         # Assert success
         self.assertTrue(ret)
