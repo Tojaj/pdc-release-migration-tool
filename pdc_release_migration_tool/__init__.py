@@ -140,11 +140,17 @@ class PdcReleaseMigrationTool(object):
         self._bulk_insert(resource, data)
 
     def _get_releases(self, release_ids):
-        releases = self.client['releases'](page_size=-1)
-        for release in releases:
-            if release["release_id"] not in release_ids:
-                continue
-            self._releases.append(release)
+        if not release_ids:
+            releases = self.client['releases'](page_size=-1)
+            for release in releases:
+                if release["release_id"] not in release_ids:
+                    continue
+                self._releases.append(release)
+        else:
+            releases = self.client['releases'](release_id=release_ids,
+                                               page_size=-1)
+            self._releases = releases
+
 
     def _post_releases(self, release_ids):
         """Bulk create of releases"""
