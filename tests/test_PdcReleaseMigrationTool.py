@@ -189,7 +189,6 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Input parameters
         f = StringIO()
-        release_ids = ["foo-release"]
 
         # Test
         rmt = PdcReleaseMigrationTool(client_mock)
@@ -215,7 +214,7 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Server mock
         client_mock = mock.MagicMock()
-        client_mock["releases"]._return_value = []
+        client_mock["releases"].return_value = []
 
         # Input parameters
         f = StringIO()
@@ -223,7 +222,7 @@ class TestCasePdcReleaseMigrationTool(unittest.TestCase):
 
         # Test
         rmt = PdcReleaseMigrationTool(client_mock)
-        ret = rmt.dump(f, None)
+        ret = rmt.dump(f, release_ids)
 
         # Assert success
         self.assertTrue(ret)

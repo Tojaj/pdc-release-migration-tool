@@ -151,7 +151,6 @@ class PdcReleaseMigrationTool(object):
                                                page_size=-1)
             self._releases = releases
 
-
     def _post_releases(self, release_ids):
         """Bulk create of releases"""
 
